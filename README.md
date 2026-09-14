@@ -1,9 +1,11 @@
 # nfl_prediction
 
-NFL pick'em pool for friends and family. Everyone picks a winner for each game, picks lock at kickoff, and the site keeps the season record.
+NFL pick'em pool for friends and family. Everyone picks a winner for each game, picks lock when the week's first game kicks off, and the site keeps the season record.
 
 - **Picks**: one grid per week, one column per player. Load a week's games from ESPN with one click, or type them in.
-- **Automatic results**: games loaded from ESPN lock at kickoff and get marked final when they end. You can still set or fix a winner by clicking a team name.
+- **Locks**: every pick for the week locks when its first game kicks off. You can switch to locking each game at its own kickoff in `config.js`.
+- **Hidden picks**: until you've picked every open game, you only see whether other players have picked, not what they picked.
+- **Automatic results**: ESPN games get marked final when they end. You can still set or fix a winner by clicking a team name.
 - **Standings**: season leaderboard (correct picks, win %, week wins) and a week-by-week record.
 - **Shared storage**: with Firebase set up, everyone who opens the link sees the same pool, live.
 - **Backups**: download the whole pool as JSON and restore it any time.
@@ -31,11 +33,14 @@ The Firebase web config is meant to be public. The database rules only let signe
 
 ## Using the site
 
+- **Pick as yourself**: choose your name under **Picking as**, above the grid. Each browser remembers the choice. Only your own column has menus; to enter picks for someone else, switch to their name. If no name is chosen, the first player you add becomes you.
 - **Add players** at the bottom of the Picks tab. Click a name to rename it, or ✕ to remove it and all of their picks.
 - **Load games**: on an empty week, click **Load week N from ESPN**. **Edit games** lets you add, remove, or type matchups one per line ("Bills at Ravens", "BUF @ BAL").
+- **Locks**: with `LOCK_AT = "first-game"` in `config.js` (the default), every pick for the week locks when its first game kicks off, usually Thursday night. Set `LOCK_AT = "each-game"` to lock each game at its own kickoff instead.
+- **Hidden picks**: other players' columns show only "✓ Picked" or "Not yet" for games that haven't locked, until you've picked every open game. After that, or once games lock, everyone's picks show. You can still change your picks until they lock.
 - **Results** fill in on their own for ESPN games while anyone has the site open, including catching up on older weeks. Click a team name to set or clear a winner by hand; a winner you set by hand is never overwritten.
-- **Lock week** locks every pick in the week, which is useful for games you typed in without kickoff times.
-- **Allow late picks** reopens a week's games after kickoff, for picks people made beforehand but didn't enter yet. It applies to everyone, so click **Lock at kickoff** when you're done. If you already use Firebase, re-publish `database.rules.json` so the setting can be saved.
+- **Lock week** locks every pick in the week right away. It's most useful for games you typed in without kickoff times.
+- **Allow late picks** reopens a week after kickoff, for picks people made beforehand but didn't enter yet. It applies to everyone, so click **Stop late picks** when you're done.
 - **More than one pool**: add `?pool=name` to the link, e.g. `https://sngjyoon.github.io/nfl_prediction/?pool=family`. Each name is a separate pool.
 - **New season**: change `SEASON` and `WEEK1_START` in `config.js`. Each season starts a fresh board; old seasons stay in the database.
 
@@ -45,7 +50,8 @@ The Firebase web config is meant to be public. The database rules only let signe
 
 ## Good to know
 
-- Anyone with the link can make picks for anyone and edit games. That's fine for friends and family, but don't treat it as secure. To limit abuse of your Firebase project, restrict the API key to your GitHub Pages domain in Google Cloud Console → APIs & Services → Credentials.
+- Picking as a name, hidden picks, and locks all run in the browser, so they work on trust. Anyone with the link can choose any player's name, turn on late picks, or see hidden picks by downloading a backup or using the browser's developer tools. Making that airtight would need Google sign-in tied to each player plus stricter database rules.
+- To limit abuse of your Firebase project, restrict the API key to your GitHub Pages domain in Google Cloud Console → APIs & Services → Credentials.
 - Schedules and scores come from ESPN's public scoreboard feed, which is unofficial and could change. If it stops working, type games in and click team names to mark winners.
 - Scoring: one point per correct pick. A missed pick counts as wrong. A tie counts for no one and isn't counted as a game. Week winners are awarded once every game that week has a result.
 
@@ -65,6 +71,6 @@ python3 -m http.server 8000
 | `index.html` | Page layout |
 | `style.css` | Styles |
 | `app.js` | UI, storage (Firebase or localStorage), ESPN sync |
-| `pool.js` | Teams, game parsing, ESPN parsing, scoring |
-| `config.js` | Firebase config and season settings |
+| `pool.js` | Teams, game parsing, ESPN parsing, locks, scoring |
+| `config.js` | Firebase config, season, and lock settings |
 | `database.rules.json` | Firebase Realtime Database security rules |

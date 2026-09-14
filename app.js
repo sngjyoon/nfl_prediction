@@ -1,9 +1,9 @@
 // Pick'em pool UI. Data lives in Firebase Realtime Database when config.js has
 // a Firebase config, otherwise in this browser's localStorage.
-import { FIREBASE_CONFIG, SEASON, WEEK1_START, POOL_TITLE } from "./config.js";
+import { FIREBASE_CONFIG, SEASON, WEEK1_START, POOL_TITLE, LOCK_AT } from "./config.js";
 import {
-  WEEKS, nick, wk, gameKey, parseGames, espnUrl, parseEspn,
-  playerList, weekGames, pickOf, isLocked, isDecided, standings, applyUpdate
+  WEEKS, nick, wk, gameKey, parseGames, espnUrl, parseEspn, playerList, weekGames,
+  pickOf, isLocked, firstKickoff, isDecided, standings, applyUpdate
 } from "./pool.js";
 
 const FIREBASE_VERSION = "12.19.0";
@@ -13,7 +13,9 @@ const HOUR = 60 * MINUTE;
 const params = new URLSearchParams(location.search);
 const POOL_ID = (params.get("pool") || "main").toLowerCase().replace(/[^a-z0-9_-]/g, "").slice(0, 40) || "main";
 const DB_PATH = `pools/${SEASON}-${POOL_ID}`;
+const ME_KEY = "pickem:me:" + DB_PATH;
 const USE_FIREBASE = !!(FIREBASE_CONFIG && FIREBASE_CONFIG.apiKey);
+const EACH_GAME = LOCK_AT === "each-game";
 
 const clamp = (n, lo, hi) => Math.min(Math.max(n, lo), hi);
 // Weeks roll over Tuesday morning, after Monday Night Football.
@@ -30,12 +32,22 @@ let tab = location.hash === "#standings" ? "standings" : "picks";
 let editing = false;
 let boardStale = false;
 let lockSig = "";
+let me = "";           // player id this browser picks as
+try { me = localStorage.getItem(ME_KEY) || ""; } catch {}
 const live = {};       // week -> { gameKey: latest ESPN game }, for display only
 const lastFetch = {};  // week -> time of the last ESPN fetch
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 const cleanName = s => String(s || "").trim().replace(/\s+/g, " ").slice(0, 20);
+const gameLocked = (g, w = week) => isLocked(pool, w, g, Date.now(), LOCK_AT);
+
+// The player this browser picks as, or "" if none is chosen or they were removed.
+const myId = () => (me && pool.players?.[me] ? me : "");
+function setMe(id) {
+  me = id;
+  try { if (id) localStorage.setItem(ME_KEY, id); else localStorage.removeItem(ME_KEY); } catch {}
+}
 
 /* ---------------- storage ---------------- */
 
@@ -186,6 +198,7 @@ function render() {
   document.querySelectorAll("[data-tab]").forEach(b => b.setAttribute("aria-selected", String(b.dataset.tab === tab)));
   $("weekNav").hidden = !onPicks;
   $("bar").hidden = !onPicks;
+  $("meBar").hidden = true;
   $("addRow").hidden = !onPicks || !loaded;
   $("editor").hidden = !onPicks || !editing;
   if (onPicks) renderBar();
@@ -200,21 +213,47 @@ function render() {
 
 function renderBar() {
   const games = weekGames(pool, week);
+  const people = playerList(pool);
   const weekLocked = !!pool.locked?.[wk(week)];
   const late = !!pool.late?.[wk(week)];
-  const timed = games.some(g => g.kickoff);
+  const first = firstKickoff(pool, week);
+  const autoLocked = !EACH_GAME && !!first && Date.now() >= first;
+
   let s = !loaded ? "Loading…" : !games.length ? "No games yet" : `${games.length} games · ${games.filter(g => g.w).length} final`;
-  if (games.length) s += weekLocked ? " · week locked" : late ? " · late picks allowed" : timed ? " · picks lock at kickoff" : "";
+  if (games.length) {
+    s += weekLocked ? " · week locked"
+      : late ? " · late picks allowed"
+      : !first ? ""
+      : EACH_GAME ? " · picks lock at kickoff"
+      : autoLocked ? " · locked since the first kickoff"
+      : ` · picks lock ${fmtKick(first)}`;
+  }
   $("status").textContent = s;
-  $("lateBtn").hidden = !timed || weekLocked;
-  $("lateBtn").textContent = late ? "Lock at kickoff" : "Allow late picks";
+  $("lateBtn").hidden = !first || weekLocked || (!late && Date.now() < first);
+  $("lateBtn").textContent = late ? "Stop late picks" : "Allow late picks";
   $("lateBtn").classList.toggle("on", late);
-  $("lockBtn").hidden = !games.length;
+  $("lockBtn").hidden = !games.length || (autoLocked && !late && !weekLocked);
   $("lockBtn").textContent = weekLocked ? "Unlock week" : "Lock week";
   $("editBtn").hidden = !loaded || !!fatal;
   $("weekSel").value = String(week);
   $("prev").disabled = week <= 1;
   $("next").disabled = week >= WEEKS;
+
+  $("meBar").hidden = !loaded || !!fatal || !games.length || !people.length;
+  const sel = $("meSel"), mine = myId();
+  const sig = people.map(p => p.id + ":" + p.name).join("|");
+  if (sel.dataset.sig !== sig) {
+    sel.dataset.sig = sig;
+    sel.innerHTML = `<option value="">Choose your name…</option>` +
+      people.map(p => `<option value="${esc(p.id)}">${esc(p.name)}</option>`).join("");
+  }
+  sel.value = mine;
+  const open = games.filter(g => !gameLocked(g));
+  const done = mine ? open.filter(g => pickOf(pool, week, g.key, mine)).length : 0;
+  $("meNote").textContent = !open.length ? "Picks are locked, so everyone's picks are showing."
+    : !mine ? "Choose your name to make your picks. Everyone else's picks stay hidden until you've made yours."
+    : done < open.length ? `Everyone else's picks stay hidden until you pick every open game (${done} of ${open.length} done).`
+    : "You've picked every open game, so everyone's picks are showing.";
 }
 
 const emptyHtml = (title, text, extra = "") =>
@@ -239,8 +278,11 @@ const teamBtn = (g, t) =>
 
 function picksHtml() {
   const games = weekGames(pool, week);
-  const people = playerList(pool);
-  lockSig = games.map(g => (isLocked(pool, week, g) ? 1 : 0)).join("");
+  const mine = myId();
+  // Your column comes first.
+  const people = playerList(pool).sort((x, y) => (y.id === mine) - (x.id === mine));
+  const locked = Object.fromEntries(games.map(g => [g.key, gameLocked(g)]));
+  lockSig = games.map(g => (locked[g.key] ? 1 : 0)).join("");
 
   if (!games.length) {
     return emptyHtml(`Week ${week} has no games yet`,
@@ -249,6 +291,8 @@ function picksHtml() {
       `<button class="btn ghost" data-act="edit">Enter games by hand</button></div>`);
   }
 
+  // Everyone else's picks for open games stay hidden until you've picked every open game.
+  const reveal = !!mine && games.every(g => locked[g.key] || pickOf(pool, week, g.key, mine));
   const { rows } = standings(pool);
   const season = Object.fromEntries(rows.map(r => [r.id, r]));
   const leader = rows.length && rows[0].correct > 0 ? rows[0].correct : null;
@@ -257,7 +301,9 @@ function picksHtml() {
 
   let head = `<tr><th class="mc">Week ${week}</th>`;
   for (const p of people) {
-    head += `<th><button class="who" data-rename="${esc(p.id)}" title="Rename ${esc(p.name)}">${esc(p.name)}</button>` +
+    const you = p.id === mine;
+    head += `<th${you ? ' class="me"' : ""}><button class="who" data-rename="${esc(p.id)}" title="Rename ${esc(p.name)}">${esc(p.name)}</button>` +
+      (you ? '<span class="you">you</span>' : "") +
       `<button class="rm" data-rm="${esc(p.id)}" aria-label="Remove ${esc(p.name)}">&#10005;</button></th>`;
   }
   if (!people.length) head += `<th class="hint">Add a player below to start picking</th>`;
@@ -265,23 +311,31 @@ function picksHtml() {
 
   let body = "";
   for (const g of games) {
-    const locked = isLocked(pool, week, g);
+    const gl = locked[g.key];
     body += `<tr><td class="mc"><div class="matchup">${teamBtn(g, g.a)}<span class="at">at</span>${teamBtn(g, g.h)}</div>` +
-      `<span class="meta">${gameMeta(g, locked)}</span></td>`;
+      `<span class="meta">${gameMeta(g, gl)}</span></td>`;
     for (const p of people) {
       const pick = pickOf(pool, week, g.key, p.id);
       const cls = isDecided(g) && pick ? (pick === g.w ? " hit" : " miss") : "";
-      body += `<td><select class="pick${cls}" data-pick="${esc(g.key)}|${esc(p.id)}" ` +
-        `aria-label="${esc(p.name)}: ${nick(g.a)} at ${nick(g.h)}"${locked ? " disabled" : ""}>` +
-        `<option value="">&mdash;</option>` +
-        [g.a, g.h].map(t => `<option value="${t}"${pick === t ? " selected" : ""}>${nick(t)}</option>`).join("") +
-        `</select></td>`;
+      if (p.id === mine) {
+        body += `<td class="me"><select class="pick${cls}" data-pick="${esc(g.key)}|${esc(p.id)}" ` +
+          `aria-label="Your pick: ${nick(g.a)} at ${nick(g.h)}"${gl ? " disabled" : ""}>` +
+          `<option value="">&mdash;</option>` +
+          [g.a, g.h].map(t => `<option value="${t}"${pick === t ? " selected" : ""}>${nick(t)}</option>`).join("") +
+          `</select></td>`;
+      } else if (gl || reveal) {
+        body += `<td><span class="pk${cls}">${pick ? esc(nick(pick)) : "&mdash;"}</span></td>`;
+      } else {
+        body += `<td><span class="pk secret">${pick ? "&#10003; Picked" : "Not yet"}</span></td>`;
+      }
     }
     body += filler + "</tr>";
   }
 
   body += `<tr class="sub"><td class="mc lab">Week ${week}</td>`;
-  for (const p of people) body += `<td class="subnum">${season[p.id].weeks[week] ?? 0} <i>/ ${decided}</i></td>`;
+  for (const p of people) {
+    body += `<td class="subnum${p.id === mine ? " me" : ""}">${season[p.id].weeks[week] ?? 0} <i>/ ${decided}</i></td>`;
+  }
   body += filler + "</tr>";
 
   let foot = `<tr><td class="mc lab">Season total</td>`;
@@ -402,6 +456,7 @@ function addPlayer() {
     return;
   }
   const id = "p" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  if (!myId()) setMe(id);
   write({ [`players/${id}`]: { name, n: Date.now() } });
   $("newName").value = "";
 }
@@ -443,8 +498,8 @@ function toggleWinner(key, team) {
 function setPick(sel) {
   const [key, pid] = sel.dataset.pick.split("|");
   const g = weekGames(pool, week).find(x => x.key === key);
-  if (!g || isLocked(pool, week, g)) {
-    toast("Picks for this game are locked", true);
+  if (pid !== myId() || !g || gameLocked(g)) {
+    toast(pid !== myId() ? "Choose your name to make picks" : "Picks for this game are locked", true);
     sel.blur();
     render();
     return;
@@ -498,6 +553,7 @@ async function copyLink() {
 $("prev").onclick = () => setWeek(week - 1);
 $("next").onclick = () => setWeek(week + 1);
 $("weekSel").onchange = e => setWeek(Number(e.target.value));
+$("meSel").onchange = e => { setMe(e.target.value); render(); };
 $("lockBtn").onclick = () => write({ [`locked/${wk(week)}`]: pool.locked?.[wk(week)] ? null : true });
 $("lateBtn").onclick = () => {
   const on = !!pool.late?.[wk(week)];
@@ -547,7 +603,9 @@ async function boot() {
   const title = `${POOL_TITLE} · ${SEASON} NFL`;
   document.title = title;
   $("title").textContent = title;
-  if (POOL_ID !== "main") $("subtitle").textContent += ` Pool: ${POOL_ID}.`;
+  $("subtitle").textContent = "Everyone picks a winner. " +
+    (EACH_GAME ? "Each game locks at kickoff." : "Picks lock when the week's first game kicks off.") +
+    (POOL_ID !== "main" ? ` Pool: ${POOL_ID}.` : "");
   for (let w = 1; w <= WEEKS; w++) $("weekSel").add(new Option("Week " + w, w));
   setConn("connecting");
   render();
@@ -567,10 +625,10 @@ async function boot() {
 
   autoSync();
   setInterval(autoSync, MINUTE);
-  // Re-render when a game kicks off so its picks lock without a reload.
+  // Re-render when a lock time passes so picks lock without a reload.
   setInterval(() => {
     if (tab !== "picks" || !loaded) return;
-    const sig = weekGames(pool, week).map(g => (isLocked(pool, week, g) ? 1 : 0)).join("");
+    const sig = weekGames(pool, week).map(g => (gameLocked(g) ? 1 : 0)).join("");
     if (sig !== lockSig) render();
   }, 30e3);
 }

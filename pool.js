@@ -123,8 +123,20 @@ export function weekGames(pool, w) {
 
 export const pickOf = (pool, w, key, pid) => pool.picks?.[wk(w)]?.[key]?.[pid] || "";
 export const isDecided = g => !!g.w && (g.w === g.a || g.w === g.h);
-export const isLocked = (pool, w, g, now = Date.now()) =>
-  !!pool.locked?.[wk(w)] || (!pool.late?.[wk(w)] && !!g.kickoff && now >= g.kickoff);
+export function firstKickoff(pool, w) {
+  const times = weekGames(pool, w).map(g => g.kickoff).filter(Boolean);
+  return times.length ? Math.min(...times) : null;
+}
+
+// mode "first-game": the whole week locks at its first kickoff.
+// mode "each-game": each game locks at its own kickoff.
+// A manual week lock always wins; late picks turn kickoff locks off.
+export function isLocked(pool, w, g, now = Date.now(), mode = "first-game") {
+  if (pool.locked?.[wk(w)]) return true;
+  if (pool.late?.[wk(w)]) return false;
+  const at = mode === "each-game" ? g.kickoff : firstKickoff(pool, w);
+  return !!at && now >= at;
+}
 
 // Season standings. A missed pick counts as wrong. A week winner is awarded
 // only once every game that week has a result.

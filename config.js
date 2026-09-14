@@ -20,4 +20,8 @@ export const FIREBASE_CONFIG = {
 export const SEASON = 2026;
 export const WEEK1_START = "2026-09-08";
 
+// When picks lock. "first-game": every pick for the week locks when the week's
+// first game kicks off. "each-game": each game locks at its own kickoff.
+export const LOCK_AT = "first-game";
+
 export const POOL_TITLE = "Pick'em Pool";

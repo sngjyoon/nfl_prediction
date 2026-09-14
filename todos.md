@@ -1,0 +1,5 @@
+- [ ] import game results only from ESPN, no manual clicking
+- [ ] more analysis with the picks
+- [ ] remove copy link
+- [ ] layouts
+- [ ] current standings on top of the site
