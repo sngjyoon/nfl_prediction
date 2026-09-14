@@ -1,5 +1,11 @@
 - [ ] import game results only from ESPN, no manual clicking
+- [ ] hide other people’s picks in more proper way
 - [ ] more analysis with the picks
-- [ ] remove copy link
+- [ ] remove
+  - [ ] copy link
+  - [ ] enter games by hand
 - [ ] layouts
+  - [ ] move the arrow on week little bit to left
+  - [ ] move add player to the top of grid
 - [ ] current standings on top of the site
+- [ ] add user’s custom themes for team

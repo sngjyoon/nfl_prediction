@@ -76,7 +76,8 @@ button{font:inherit}
 .edit .row span{font-size:12px; color:var(--mute); flex:1 1 120px}
 
 /* tables */
-.scroll{overflow:auto; max-height:70vh}
+/* Scroll sideways when there are many players; the page itself scrolls down. */
+.scroll{overflow-x:auto}
 table{border-collapse:separate; border-spacing:0; width:100%; font-size:13px}
 th,td{padding:7px 8px; border-bottom:1px solid var(--rule); text-align:left; vertical-align:middle}
 thead th{position:sticky; top:0; z-index:3; background:var(--field); white-space:nowrap;
@@ -120,7 +121,7 @@ tfoot small{display:block; font-size:11px; font-weight:500; color:var(--mint)}
 .sec + .sec{border-top:1px solid var(--rule)}
 .sec h2{font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:20px; margin:0 0 8px}
 .note{margin:-4px 0 10px; font-size:12.5px; color:var(--mute); line-height:1.45}
-.sec .scroll{max-height:none; border:1px solid var(--rule); border-radius:8px}
+.sec .scroll{border:1px solid var(--rule); border-radius:8px}
 .lb tbody tr:last-child td{border-bottom:none}
 .num{text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap}
 .num i{font-style:normal; color:var(--mute); font-size:12px}
