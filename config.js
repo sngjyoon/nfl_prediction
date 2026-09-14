@@ -5,16 +5,15 @@
 // create a free Firebase project and paste its web app config here (see README).
 // The Firebase web config is not a secret; access is controlled by
 // database.rules.json.
-export const FIREBASE_CONFIG = null;
-/* Example:
 export const FIREBASE_CONFIG = {
-  apiKey: "AIza...",
-  authDomain: "your-project.firebaseapp.com",
-  databaseURL: "https://your-project-default-rtdb.firebaseio.com",
-  projectId: "your-project",
-  appId: "1:1234567890:web:abc123"
+  apiKey: "AIzaSyDS5EDS1ScIkzjBMR5YOK0EUSqA9eqz92Q",
+  authDomain: "nfl-pick-em-pool-a4ccd.firebaseapp.com",
+  databaseURL: "https://nfl-pick-em-pool-a4ccd-default-rtdb.firebaseio.com",
+  projectId: "nfl-pick-em-pool-a4ccd",
+  storageBucket: "nfl-pick-em-pool-a4ccd.firebasestorage.app",
+  messagingSenderId: "151841864331",
+  appId: "1:151841864331:web:4d87b26739c1890d00728e"
 };
-*/
 
 // Season settings. For a new season, bump SEASON and set WEEK1_START to the
 // Tuesday before the opening game. Each season gets a fresh board.
