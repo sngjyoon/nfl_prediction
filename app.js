@@ -201,9 +201,14 @@ function render() {
 function renderBar() {
   const games = weekGames(pool, week);
   const weekLocked = !!pool.locked?.[wk(week)];
+  const late = !!pool.late?.[wk(week)];
+  const timed = games.some(g => g.kickoff);
   let s = !loaded ? "Loading…" : !games.length ? "No games yet" : `${games.length} games · ${games.filter(g => g.w).length} final`;
-  if (games.length) s += weekLocked ? " · week locked" : games.some(g => g.kickoff) ? " · picks lock at kickoff" : "";
+  if (games.length) s += weekLocked ? " · week locked" : late ? " · late picks allowed" : timed ? " · picks lock at kickoff" : "";
   $("status").textContent = s;
+  $("lateBtn").hidden = !timed || weekLocked;
+  $("lateBtn").textContent = late ? "Lock at kickoff" : "Allow late picks";
+  $("lateBtn").classList.toggle("on", late);
   $("lockBtn").hidden = !games.length;
   $("lockBtn").textContent = weekLocked ? "Unlock week" : "Lock week";
   $("editBtn").hidden = !loaded || !!fatal;
@@ -468,7 +473,7 @@ async function restoreBackup(file) {
   const note = backup.season !== SEASON ? ` It's from the ${backup.season} season.` : "";
   if (!confirm(`Replace everything in this pool with the backup from ${String(backup.exportedAt).slice(0, 10)} (${players} players)?${note} Current picks and results will be overwritten.`)) return;
   const next = {};
-  for (const k of ["players", "games", "picks", "locked"]) if (data[k]) next[k] = data[k];
+  for (const k of ["players", "games", "picks", "locked", "late"]) if (data[k]) next[k] = data[k];
   try {
     await store.replace(next);
     toast("Backup restored");
@@ -494,6 +499,11 @@ $("prev").onclick = () => setWeek(week - 1);
 $("next").onclick = () => setWeek(week + 1);
 $("weekSel").onchange = e => setWeek(Number(e.target.value));
 $("lockBtn").onclick = () => write({ [`locked/${wk(week)}`]: pool.locked?.[wk(week)] ? null : true });
+$("lateBtn").onclick = () => {
+  const on = !!pool.late?.[wk(week)];
+  if (!on && !confirm(`Allow picks for week ${week} games that have already kicked off? Use this to enter picks people made before kickoff. Everyone can change those picks until you turn it off.`)) return;
+  write({ [`late/${wk(week)}`]: on ? null : true });
+};
 $("editBtn").onclick = openEditor;
 $("cancelEdit").onclick = () => { editing = false; render(); };
 $("saveEdit").onclick = saveGames;

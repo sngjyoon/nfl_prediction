@@ -32,6 +32,11 @@
             ".validate": "newData.isBoolean()"
           }
         },
+        "late": {
+          "$week": {
+            ".validate": "newData.isBoolean()"
+          }
+        },
         "$other": {
           ".validate": false
         }

@@ -4,7 +4,8 @@
 //   players/{playerId}           { name, n }            n = sort order
 //   games/w{week}/{AWAY@HOME}    { a, h, n, kickoff?, espn?, w?, fin?, as?, hs?, detail? }
 //   picks/w{week}/{AWAY@HOME}/{playerId}   "TEAM"
-//   locked/w{week}               true
+//   locked/w{week}               true   every pick in the week is locked
+//   late/w{week}                 true   picks stay open after kickoff
 // Week keys are prefixed with "w" so Firebase never turns them into arrays.
 
 export const WEEKS = 18;
@@ -123,7 +124,7 @@ export function weekGames(pool, w) {
 export const pickOf = (pool, w, key, pid) => pool.picks?.[wk(w)]?.[key]?.[pid] || "";
 export const isDecided = g => !!g.w && (g.w === g.a || g.w === g.h);
 export const isLocked = (pool, w, g, now = Date.now()) =>
-  !!pool.locked?.[wk(w)] || (!!g.kickoff && now >= g.kickoff);
+  !!pool.locked?.[wk(w)] || (!pool.late?.[wk(w)] && !!g.kickoff && now >= g.kickoff);
 
 // Season standings. A missed pick counts as wrong. A week winner is awarded
 // only once every game that week has a result.

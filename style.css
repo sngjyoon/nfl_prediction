@@ -40,6 +40,7 @@ button{font:inherit}
 .chip{font-weight:600; font-size:12px; color:var(--turf); background:var(--paper);
   border:1px solid var(--rule); border-radius:5px; padding:4px 9px; cursor:pointer; white-space:nowrap}
 .chip:hover{border-color:var(--turf-lo)}
+.chip.on{background:#FBF1D6; border-color:#D9B45A; color:var(--gold-dk)}
 .foot{border-bottom:none; border-top:1px solid var(--rule); padding:10px 14px}
 .dot{display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px; vertical-align:1px; background:#9AA59D}
 .dot.live{background:#2E9E6A}

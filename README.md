@@ -35,6 +35,7 @@ The Firebase web config is meant to be public. The database rules only let signe
 - **Load games**: on an empty week, click **Load week N from ESPN**. **Edit games** lets you add, remove, or type matchups one per line ("Bills at Ravens", "BUF @ BAL").
 - **Results** fill in on their own for ESPN games while anyone has the site open, including catching up on older weeks. Click a team name to set or clear a winner by hand; a winner you set by hand is never overwritten.
 - **Lock week** locks every pick in the week, which is useful for games you typed in without kickoff times.
+- **Allow late picks** reopens a week's games after kickoff, for picks people made beforehand but didn't enter yet. It applies to everyone, so click **Lock at kickoff** when you're done. If you already use Firebase, re-publish `database.rules.json` so the setting can be saved.
 - **More than one pool**: add `?pool=name` to the link, e.g. `https://sngjyoon.github.io/nfl_prediction/?pool=family`. Each name is a separate pool.
 - **New season**: change `SEASON` and `WEEK1_START` in `config.js`. Each season starts a fresh board; old seasons stay in the database.
 
