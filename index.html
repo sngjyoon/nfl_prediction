@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Pick'em Pool · 2026 NFL</title>
+<meta name="description" content="NFL pick'em pool for friends and family. Pick a winner for every game and track the season standings." />
+<meta property="og:title" content="Pick'em Pool · 2026 NFL" />
+<meta property="og:description" content="Pick a winner for every game and track the season standings." />
+<meta name="theme-color" content="#1C5641" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8F%88%3C/text%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<div class="pool">
+  <header class="hdr">
+    <h1 id="title">Pick'em Pool · 2026 NFL</h1>
+    <p id="subtitle">Everyone picks a winner. Picks lock at kickoff.</p>
+    <nav class="tabs" role="tablist" aria-label="Views">
+      <button role="tab" data-tab="picks" aria-selected="true">Picks</button>
+      <button role="tab" data-tab="standings" aria-selected="false">Standings</button>
+    </nav>
+    <div class="wk" id="weekNav">
+      <button class="step" id="prev" aria-label="Previous week">&lsaquo;</button>
+      <select id="weekSel" aria-label="Week"></select>
+      <button class="step" id="next" aria-label="Next week">&rsaquo;</button>
+    </div>
+  </header>
+
+  <div class="strip" id="bar">
+    <span id="status">Loading…</span>
+    <span class="acts">
+      <button class="chip" id="lockBtn" hidden>Lock week</button>
+      <button class="chip" id="editBtn" hidden>Edit games</button>
+    </span>
+  </div>
+
+  <div class="edit" id="editor" hidden>
+    <p>One game per line, away team first. &ldquo;Bills at Ravens&rdquo;, &ldquo;BUF @ BAL&rdquo;, and &ldquo;Buffalo vs Baltimore&rdquo; all work. Or load the week from ESPN to get kickoff locks and automatic results.</p>
+    <textarea id="draft" placeholder="Bills at Ravens&#10;Packers at Lions" aria-label="Games, one per line"></textarea>
+    <div class="row">
+      <span id="parseInfo"></span>
+      <button class="btn ghost" id="cancelEdit">Cancel</button>
+      <button class="btn ghost" data-act="espn">Load from ESPN</button>
+      <button class="btn" id="saveEdit">Save games</button>
+    </div>
+  </div>
+
+  <main id="board"></main>
+
+  <div class="add" id="addRow" hidden>
+    <input id="newName" placeholder="Add a player" maxlength="20" autocomplete="off" aria-label="Player name" />
+    <button class="btn" id="addBtn">Add</button>
+  </div>
+
+  <footer class="strip foot">
+    <span id="conn"><span class="dot"></span>Connecting…</span>
+    <span class="acts">
+      <button class="chip" id="shareBtn">Copy link</button>
+      <button class="chip" id="exportBtn">Download backup</button>
+      <button class="chip" id="importBtn">Restore backup</button>
+      <input type="file" id="importFile" accept=".json,application/json" hidden />
+    </span>
+  </footer>
+</div>
+
+<p class="credit">Schedules and scores from ESPN.</p>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<noscript><p class="credit">This pool needs JavaScript turned on.</p></noscript>
+<script type="module" src="app.js"></script>
+</body>
+</html>

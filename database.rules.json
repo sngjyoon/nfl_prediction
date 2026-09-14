@@ -1,0 +1,41 @@
+{
+  "rules": {
+    "pools": {
+      "$pool": {
+        ".read": "auth != null",
+        ".write": "auth != null",
+        ".validate": "$pool.matches(/^[a-z0-9_-]{1,60}$/)",
+        "players": {
+          "$pid": {
+            ".validate": "newData.hasChildren(['name']) && newData.child('name').isString() && newData.child('name').val().length >= 1 && newData.child('name').val().length <= 20"
+          }
+        },
+        "games": {
+          "$week": {
+            ".validate": "$week.matches(/^w([1-9]|1[0-8])$/)",
+            "$game": {
+              ".validate": "$game.matches(/^[A-Z]{2,3}@[A-Z]{2,3}$/) && newData.hasChildren(['a', 'h'])"
+            }
+          }
+        },
+        "picks": {
+          "$week": {
+            "$game": {
+              "$pid": {
+                ".validate": "newData.isString() && newData.val().length <= 3"
+              }
+            }
+          }
+        },
+        "locked": {
+          "$week": {
+            ".validate": "newData.isBoolean()"
+          }
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    }
+  }
+}
